@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UJ Academic Code Delivery System</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --orange: #E8571A;
+  --orange2: #FF6B2B;
+  --dark: #1A1A1A;
+  --dark2: #242424;
+  --dark3: #2E2E2E;
+  --border: rgba(232,87,26,0.25);
+  --glow: rgba(232,87,26,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--dark); color: #fff; font-family: "DM Sans", sans-serif; font-weight: 300; min-height: 100vh; }
+body::before { content:""; position:fixed; inset:0; background:radial-gradient(ellipse 80% 60% at 10% 0%, rgba(232,87,26,0.1) 0%, transparent 60%); pointer-events:none; }
+.wrap { max-width:740px; margin:0 auto; padding:40px 24px 80px; position:relative; }
+.hdr { display:flex; align-items:center; gap:18px; margin-bottom:40px; padding-bottom:28px; border-bottom:1px solid var(--border); }
+.hdr img { width:60px; height:60px; border-radius:10px; object-fit:cover; }
+.hdr-eye { font-size:11px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--orange); margin-bottom:3px; }
+.hdr-title { font-family:"Playfair Display",serif; font-size:24px; font-weight:700; }
+.hdr-sub { font-size:12px; color:rgba(255,255,255,0.4); margin-top:3px; }
+.prog { display:flex; gap:6px; margin-bottom:36px; }
+.prog-dot { flex:1; height:3px; background:var(--dark3); border-radius:99px; transition:background 0.4s; }
+.prog-dot.active { background:var(--orange); }
+.prog-dot.done { background:#C44A12; }
+.step { display:none; }
+.step.on { display:block; animation:up 0.35s ease both; }
+@keyframes up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.step-hdr { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+.step-num { width:34px; height:34px; border-radius:50%; background:var(--orange); font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.step-ttl { font-family:"Playfair Display",serif; font-size:20px; }
+.step-sub { font-size:12px; color:rgba(255,255,255,0.4); margin-top:2px; }
+.info { background:var(--dark2); border:1px solid var(--border); border-left:3px solid var(--orange); border-radius:8px; padding:14px 16px; margin-bottom:22px; font-size:13px; color:rgba(255,255,255,0.6); line-height:1.75; }
+.info ol { padding-left:16px; }
+.info li { margin-bottom:4px; }
+.info a { color:var(--orange2); text-decoration:none; }
+.info strong { color:#fff; font-weight:500; }
+.info code { background:var(--dark3); color:var(--orange2); padding:1px 7px; border-radius:4px; font-family:monospace; font-size:12px; }
+.info .warn { margin-top:10px; padding-top:10px; border-top:1px solid var(--border); color:var(--orange2); font-weight:500; }
+.field { margin-bottom:18px; }
+.field label { display:block; font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.45); margin-bottom:7px; }
+.field input, .field textarea { width:100%; background:var(--dark2); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:11px 14px; font-family:"DM Sans",sans-serif; font-size:14px; color:#fff; outline:none; transition:border-color 0.2s, box-shadow 0.2s; }
+.field input:focus, .field textarea:focus, .field select:focus { border-color:var(--orange); box-shadow:0 0 0 3px var(--glow); }
+.field select { width:100%; background:var(--dark2); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:11px 14px; font-family:"DM Sans",sans-serif; font-size:14px; color:#fff; outline:none; transition:border-color 0.2s, box-shadow 0.2s; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23E8571A' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; }
+.field select option { background:var(--dark2); color:#fff; }
+.field textarea { resize:vertical; min-height:110px; line-height:1.6; }
+.hint { font-size:11px; color:rgba(255,255,255,0.28); margin-top:5px; }
+.err { font-size:12px; font-weight:500; color:#ff6b6b; background:rgba(255,80,80,0.08); border:1px solid rgba(255,80,80,0.25); border-radius:6px; padding:8px 12px; margin-top:6px; display:none; }
+.tog-row { display:flex; align-items:center; gap:14px; background:var(--dark2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:14px; cursor:pointer; user-select:none; }
+.tog { width:40px; height:22px; background:var(--dark3); border-radius:99px; position:relative; flex-shrink:0; transition:background 0.3s; }
+.tog::after { content:""; position:absolute; width:16px; height:16px; background:#fff; border-radius:50%; top:3px; left:3px; transition:transform 0.3s; }
+.tog.on { background:var(--orange); }
+.tog.on::after { transform:translateX(18px); }
+.tog-lbl { font-size:14px; color:rgba(255,255,255,0.75); }
+.cfields { display:none; flex-direction:column; gap:10px; margin-bottom:14px; }
+.cfields.on { display:flex; }
+.btns { margin-top:26px; display:flex; align-items:center; gap:10px; }
+.btn { padding:12px 26px; border-radius:8px; font-family:"DM Sans",sans-serif; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; }
+.btn-p { background:var(--orange); color:#fff; }
+.btn-p:hover { background:var(--orange2); transform:translateY(-1px); box-shadow:0 6px 20px rgba(232,87,26,0.3); }
+.btn-s { background:transparent; color:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.1); }
+.btn-s:hover { background:var(--dark2); color:#fff; }
+.summary { background:var(--dark2); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:24px; }
+.s-row { display:flex; gap:16px; padding:11px 16px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:13px; }
+.s-row:last-child { border-bottom:none; }
+.s-key { color:rgba(255,255,255,0.38); width:130px; flex-shrink:0; }
+.s-val { color:#fff; font-weight:500; word-break:break-all; }
+.dl-wrap { text-align:center; padding:32px 16px 16px; }
+.dl-icon { width:68px; height:68px; background:var(--glow); border:2px solid var(--orange); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 18px; font-size:26px; }
+.dl-title { font-family:"Playfair Display",serif; font-size:22px; margin-bottom:8px; }
+.dl-sub { font-size:13px; color:rgba(255,255,255,0.4); margin-bottom:26px; line-height:1.7; }
+.run-box { background:var(--dark2); border:1px solid var(--border); border-radius:10px; padding:18px 22px; text-align:left; margin-top:22px; font-size:13px; color:rgba(255,255,255,0.55); line-height:1.85; }
+.run-box strong { color:#fff; }
+.run-box code { background:var(--dark3); color:var(--orange2); padding:1px 7px; border-radius:4px; font-family:monospace; font-size:12px; }
+.drop-zone { position:relative; border:2px dashed rgba(232,87,26,0.35); border-radius:12px; padding:36px 24px; text-align:center; cursor:pointer; transition:all 0.2s; background:var(--dark2); margin-bottom:8px; }
+.drop-zone:hover, .drop-zone.over { border-color:var(--orange); background:var(--glow); }
+.drop-zone.has-file { border-color:var(--orange); border-style:solid; }
+.drop-icon { font-size:36px; margin-bottom:10px; color:rgba(232,87,26,0.6); transition:color 0.2s; }
+.drop-zone.over .drop-icon { color:var(--orange2); }
+.drop-text { font-size:14px; color:rgba(255,255,255,0.45); line-height:1.7; }
+.drop-text span { color:var(--orange2); font-weight:500; }
+.drop-name { font-size:14px; font-weight:600; color:var(--orange2); margin-top:10px; display:none; }
+.drop-name.on { display:block; }
+.col-pills { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:6px; }
+.col-pill { background:var(--dark3); border:1px solid var(--border); border-radius:6px; padding:4px 12px; font-size:12px; color:rgba(255,255,255,0.55); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <img src="data:image/png;base64,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" alt="UJ">
+    <div>
+      <div class="hdr-eye">University of Johannesburg</div>
+      <div class="hdr-title">Academic Code Delivery System</div>
+      <div class="hdr-sub">Automated eBook access distribution platform</div>
+    </div>
+  </div>
+
+  <div class="prog">
+    <div class="prog-dot active" id="pd1"></div>
+    <div class="prog-dot" id="pd2"></div>
+    <div class="prog-dot" id="pd3"></div>
+    <div class="prog-dot" id="pd4"></div>
+    <div class="prog-dot" id="pd5"></div>
+    <div class="prog-dot" id="pd6"></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step on" id="s1">
+    <div class="step-hdr">
+      <div class="step-num">1</div>
+      <div><div class="step-ttl">Gmail Credentials</div><div class="step-sub">Configure your sending account</div></div>
+    </div>
+    <div class="info">
+      <strong>You need a Gmail App Password</strong> - not your regular password.<br><br>
+      <ol>
+        <li>Go to <a href="https://myaccount.google.com/security" target="_blank">myaccount.google.com/security</a></li>
+        <li>Make sure <strong>2-Step Verification</strong> is ON</li>
+        <li>Search for <strong>App passwords</strong> in the search bar and open it</li>
+        <li>Give it any name e.g. <strong>Email Sender</strong> and click Create</li>
+        <li>Copy the 16-character password shown e.g. <code>abcd efgh ijkl mnop</code></li>
+      </ol>
+      <div class="warn">You only see this password ONCE - copy it before closing that window!</div>
+    </div>
+    <div class="field">
+      <label>Gmail Address</label>
+      <input type="email" id="f_email" placeholder="yourname@gmail.com">
+      <div class="err" id="e_email">Please enter a valid Gmail address</div>
+    </div>
+    <div class="field">
+      <label>Gmail App Password</label>
+      <input type="password" id="f_pass" placeholder="abcd efgh ijkl mnop">
+      <div class="hint">16 characters - spaces are fine</div>
+      <div class="err" id="e_pass">Please enter your App Password</div>
+    </div>
+    <div class="field">
+      <label>Your Display Name</label>
+      <input type="text" id="f_name" placeholder="e.g. Dr. J Levin">
+      <div class="err" id="e_name">Please enter your display name</div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-p" id="btn1">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="s2">
+    <div class="step-hdr">
+      <div class="step-num">2</div>
+      <div><div class="step-ttl">Excel File</div><div class="step-sub">Drop or select your spreadsheet</div></div>
+    </div>
+    <div class="info">
+      <strong>Important:</strong> Make sure your Excel file is <strong>closed</strong> in Excel before running the script - an open file causes a permission error.<br><br>
+      Supported: <strong>.xls</strong> and <strong>.xlsx</strong> - once uploaded, column headers will be detected automatically for Step 3.
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="f_file_input" accept=".xls,.xlsx" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+      <div class="drop-icon">&#8681;</div>
+      <div class="drop-text">Drag and drop your Excel file here<br><span>or click to browse</span></div>
+      <div class="drop-name" id="dropName"></div>
+    </div>
+    <div class="err" id="e_file">Please select an Excel file</div>
+    <input type="hidden" id="f_file">
+    <div class="btns">
+      <button class="btn btn-s" id="back2">&#8592; Back</button>
+      <button class="btn btn-p" id="btn2">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="s3">
+    <div class="step-hdr">
+      <div class="step-num">3</div>
+      <div><div class="step-ttl">Column Mapping</div><div class="step-sub">Match your spreadsheet columns</div></div>
+    </div>
+    <div class="info">
+      Enter the <strong>exact column header names</strong> from your spreadsheet - spelling and capitalisation must match exactly.
+    </div>
+    <div id="detectedCols" style="display:none;margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:8px;">Detected Columns</div>
+      <div class="col-pills" id="colPills"></div>
+    </div>
+    <div class="field">
+      <label>Name Column</label>
+      <select id="f_ncol"><option value="">-- Select column --</option></select>
+      <div class="err" id="e_ncol">Please select the name column</div>
+    </div>
+    <div class="field">
+      <label>Email Address Column</label>
+      <select id="f_ecol"><option value="">-- Select column --</option></select>
+      <div class="err" id="e_ecol">Please select the email column</div>
+    </div>
+    <div class="field">
+      <label>Serial Key / Code Column</label>
+      <select id="f_kcol"><option value="">-- Select column --</option></select>
+      <div class="err" id="e_kcol">Please select the key column</div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-s" id="back3">&#8592; Back</button>
+      <button class="btn btn-p" id="btn3">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="s4">
+    <div class="step-hdr">
+      <div class="step-num">4</div>
+      <div><div class="step-ttl">Email Content</div><div class="step-sub">Compose the message recipients will receive</div></div>
+    </div>
+    <div class="field">
+      <label>Email Subject Line</label>
+      <input type="text" id="f_subj" placeholder="e.g. GGR03A3 - Your VitalSource eBook Access Code">
+      <div class="err" id="e_subj">Please enter a subject line</div>
+    </div>
+    <div class="field">
+      <label>Message After the Code Box</label>
+      <textarea id="f_msg" placeholder="e.g. How to redeem your code:
+
+1. Go to sherwoodbooks.vitalsource.com and sign in
+2. Click Tools then Redeem Codes
+3. Enter your code and click Redeem
+
+Important: This code is unique to you. Do not share it.
+
+Kind regards,
+Dr. J Levin
+University of Johannesburg"></textarea>
+      <div class="hint">This text appears below the access code in every email</div>
+      <div class="err" id="e_msg">Please enter a message</div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-s" id="back4">&#8592; Back</button>
+      <button class="btn btn-p" id="btn4">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="s5">
+    <div class="step-hdr">
+      <div class="step-num">5</div>
+      <div><div class="step-ttl">Courtesy Notification</div><div class="step-sub">Optional confirmation emails after sending</div></div>
+    </div>
+    <div class="tog-row" id="togRow">
+      <div class="tog" id="tog"></div>
+      <div class="tog-lbl">Send a courtesy confirmation email when done</div>
+    </div>
+    <div class="cfields" id="cfields">
+      <div class="field" style="margin:0">
+        <label>Courtesy Email 1</label>
+        <input type="email" id="f_c1" placeholder="e.g. mahlatsek@uj.ac.za">
+      </div>
+      <div class="field" style="margin:0">
+        <label>Courtesy Email 2 (optional)</label>
+        <input type="email" id="f_c2" placeholder="e.g. jlevin@uj.ac.za">
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn btn-s" id="back5">&#8592; Back</button>
+      <button class="btn btn-p" id="btn5">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step" id="s6">
+    <div class="step-hdr">
+      <div class="step-num">6</div>
+      <div><div class="step-ttl">Review &amp; Download</div><div class="step-sub">Your personalised script is ready</div></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="dl-wrap">
+      <div class="dl-icon">&#8681;</div>
+      <div class="dl-title">Your Script is Ready</div>
+      <div class="dl-sub">All your settings are pre-configured.<br>Download, place next to your Excel file, and run.</div>
+      <button class="btn btn-p" style="font-size:15px;padding:14px 36px" id="btnDl">Download Script</button>
+      <div class="run-box">
+        <strong>How to run your script:</strong><br><br>
+        1. Place the downloaded <code>send_emails.py</code> in the <strong>same folder</strong> as your Excel file<br>
+        2. Open that folder, click the address bar, type <code>cmd</code> and press Enter<br>
+        3. Type <code>py send_emails.py</code> and press Enter<br>
+        4. Type <code>yes</code> when prompted to confirm<br><br>
+        <strong>First time only:</strong> the script auto-installs any missing packages when it starts.
+      </div>
+    </div>
+    <div class="btns" style="justify-content:center;margin-top:16px">
+      <button class="btn btn-s" id="back6">&#8592; Back</button>
+    </div>
+  </div>
+
+</div>
+<script>
+(function() {
+  var cur = 1;
+  var cOn = false;
+
+  var detectedHeaders = [];
+  var uploadedFileName = '';
+
+  function gv(id) {
+    return document.getElementById(id).value.trim();
+  }
+
+  function populateSelects(headers) {
+    detectedHeaders = headers;
+    var selIds = ['f_ncol','f_ecol','f_kcol'];
+    var pills = '';
+    for (var h = 0; h < headers.length; h++) {
+      pills += '<div class="col-pill">' + headers[h] + '</div>';
+    }
+    document.getElementById('colPills').innerHTML = pills;
+    document.getElementById('detectedCols').style.display = 'block';
+
+    selIds.forEach(function(sid) {
+      var sel = document.getElementById(sid);
+      sel.innerHTML = '<option value="">-- Select column --</option>';
+      headers.forEach(function(h) {
+        var opt = document.createElement('option');
+        opt.value = h;
+        opt.text = h;
+        // Auto-select likely matches
+        var hl = h.toLowerCase();
+        if (sid === 'f_ncol' && (hl.includes('name') || hl.includes('student'))) opt.selected = true;
+        if (sid === 'f_ecol' && (hl.includes('email') || hl.includes('mail'))) opt.selected = true;
+        if (sid === 'f_kcol' && (hl.includes('book') || hl.includes('code') || hl.includes('key') || hl.includes('serial') || hl.includes('id'))) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    var name = file.name;
+    if (!name.match(/\.(xls|xlsx)$/i)) {
+      alert('Please select an .xls or .xlsx file.');
+      return;
+    }
+    uploadedFileName = name;
+    document.getElementById('f_file').value = name;
+    var nameEl = document.getElementById('dropName');
+    nameEl.textContent = '✓  ' + name;
+    nameEl.className = 'drop-name on';
+    document.getElementById('dropZone').className = 'drop-zone has-file';
+    document.getElementById('e_file').style.display = 'none';
+
+    // Read headers using SheetJS
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = new Uint8Array(e.target.result);
+        var wb = XLSX.read(data, {type:'array', sheetRows:1});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var range = XLSX.utils.decode_range(ws['!ref']);
+        var headers = [];
+        for (var c = range.s.c; c <= range.e.c; c++) {
+          var cell = ws[XLSX.utils.encode_cell({r:0, c:c})];
+          if (cell && cell.v) headers.push(String(cell.v).trim());
+        }
+        if (headers.length > 0) populateSelects(headers);
+      } catch(err) {
+        console.log('Header read error:', err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // Wire up file input
+  document.getElementById('f_file_input').addEventListener('change', function(e) {
+    handleFile(e.target.files[0]);
+  });
+
+  // Wire up drag and drop
+  var dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dz.className = 'drop-zone over';
+  });
+  dz.addEventListener('dragleave', function() {
+    dz.className = uploadedFileName ? 'drop-zone has-file' : 'drop-zone';
+  });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  function showStep(n) {
+    for (var i = 1; i <= 6; i++) {
+      document.getElementById("s" + i).className = (i === n) ? "step on" : "step";
+      var pd = document.getElementById("pd" + i);
+      if (i < n) pd.className = "prog-dot done";
+      else if (i === n) pd.className = "prog-dot active";
+      else pd.className = "prog-dot";
+    }
+    cur = n;
+    window.scrollTo(0, 0);
+  }
+
+  function clearErrors() {
+    var errs = document.getElementsByClassName("err");
+    for (var i = 0; i < errs.length; i++) {
+      errs[i].style.display = "none";
+    }
+  }
+
+  function showError(id, inputId) {
+    document.getElementById(id).style.display = "block";
+    if (inputId) {
+      var el = document.getElementById(inputId);
+      if (el) { el.focus(); el.style.borderColor = "#ff6b6b"; }
+    }
+  }
+
+  function clearBorders() {
+    var inputs = document.querySelectorAll("input, textarea");
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].style.borderColor = "";
+    }
+  }
+
+  function validate(step) {
+    clearErrors();
+    clearBorders();
+    var ok = true;
+    if (step === 1) {
+      var em = gv("f_email");
+      if (!em || em.indexOf("@") === -1) { showError("e_email", "f_email"); ok = false; }
+      if (!gv("f_pass")) { showError("e_pass", "f_pass"); ok = false; }
+      if (!gv("f_name")) { showError("e_name", "f_name"); ok = false; }
+    }
+    if (step === 2) {
+      if (!gv("f_file")) { showError("e_file", "f_file"); ok = false; }
+    }
+    if (step === 3) {
+      if (!gv("f_ncol")) { showError("e_ncol", "f_ncol"); ok = false; }
+      if (!gv("f_ecol")) { showError("e_ecol", "f_ecol"); ok = false; }
+      if (!gv("f_kcol")) { showError("e_kcol", "f_kcol"); ok = false; }
+    }
+    if (step === 4) {
+      if (!gv("f_subj")) { showError("e_subj", "f_subj"); ok = false; }
+      if (!document.getElementById("f_msg").value.trim()) { showError("e_msg", "f_msg"); ok = false; }
+    }
+    return ok;
+  }
+
+  function buildSummary() {
+    var rows = [
+      ["From", gv("f_email")],
+      ["Display Name", gv("f_name")],
+      ["Excel File", gv("f_file")],
+      ["Name Column", gv("f_ncol")],
+      ["Email Column", gv("f_ecol")],
+      ["Key Column", gv("f_kcol")],
+      ["Subject", gv("f_subj")]
+    ];
+    if (cOn) {
+      if (gv("f_c1")) rows.push(["Courtesy 1", gv("f_c1")]);
+      if (gv("f_c2")) rows.push(["Courtesy 2", gv("f_c2")]);
+    }
+    var html = "";
+    for (var i = 0; i < rows.length; i++) {
+      html += '<div class="s-row"><div class="s-key">' + rows[i][0] + '</div><div class="s-val">' + rows[i][1] + '</div></div>';
+    }
+    document.getElementById("summary").innerHTML = html;
+  }
+
+  function buildScript() {
+    var senderEmail = gv("f_email");
+    var appPass     = gv("f_pass");
+    var senderName  = gv("f_name");
+    var fileName    = gv("f_file");
+    var nameCol     = gv("f_ncol");
+    var emailCol    = gv("f_ecol");
+    var keyCol      = gv("f_kcol");
+    var subject     = gv("f_subj");
+    var rawMsg      = document.getElementById("f_msg").value.trim();
+    var c1 = cOn ? gv("f_c1") : "";
+    var c2 = cOn ? gv("f_c2") : "";
+
+    var htmlMsg = rawMsg.split(/\n\n+/)
+      .filter(function(p) { return p.trim(); })
+      .map(function(p) { return "<p>" + p.replace(/\n/g, "<br>") + "</p>"; })
+      .join("");
+
+    var courtesy = [];
+    if (c1) courtesy.push(c1);
+    if (c2) courtesy.push(c2);
+
+    var esc = function(s) { return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'"); };
+
+    var L = [
+      'import sys, subprocess, importlib, smtplib, time, os',
+      'from email.mime.multipart import MIMEMultipart',
+      'from email.mime.text import MIMEText',
+      'try:',
+      '    import xlrd',
+      'except ImportError:',
+      '    xlrd = None',
+      'try:',
+      '    import openpyxl',
+      'except ImportError:',
+      '    openpyxl = None',
+      '',
+      "REQUIRED = {'xlrd':'xlrd','openpyxl':'openpyxl','win32com':'pywin32'}",
+      '',
+      'def check_pkgs():',
+      "    print('  Checking packages...')",
+      '    for mod, pkg in REQUIRED.items():',
+      '        try:',
+      '            importlib.import_module(mod)',
+      "            print('  OK     - ' + pkg)",
+      '        except ImportError:',
+      "            print('  INSTALLING - ' + pkg + '...')",
+      '            r = subprocess.run([sys.executable,"-m","pip","install",pkg], capture_output=True, text=True)',
+      "            print('  DONE   - ' + pkg if r.returncode==0 else '  FAILED - ' + pkg)",
+      "    print('  All packages ready!')",
+      '    print()',
+      '',
+      'check_pkgs()',
+      '',
+      "SENDER_EMAIL = '" + esc(senderEmail) + "'",
+      "APP_PASSWORD = '" + esc(appPass) + "'",
+      "SENDER_NAME  = '" + esc(senderName) + "'",
+      "FILE_PATH    = '" + esc(fileName) + "'",
+      "NAME_COL     = '" + esc(nameCol) + "'",
+      "EMAIL_COL    = '" + esc(emailCol) + "'",
+      "KEY_COL      = '" + esc(keyCol) + "'",
+      "SUBJECT      = '" + esc(subject) + "'",
+      "COURTESY     = " + JSON.stringify(courtesy),
+      "DELAY        = 2",
+      "HTML_MSG     = '" + esc(htmlMsg) + "'",
+      '',
+      'def read_file(fp):',
+      '    ext = os.path.splitext(fp)[1].lower()',
+      '    if ext == ".xls":',
+      '        if not xlrd: print("xlrd missing"); return None',
+      '        wb = xlrd.open_workbook(fp)',
+      '        sh = wb.sheets()[0]',
+      '        hd = [str(h).strip() for h in sh.row_values(0)]',
+      '        return [{hd[j]:str(sh.row_values(i)[j]).strip() for j in range(len(hd))} for i in range(1,sh.nrows)]',
+      '    elif ext == ".xlsx":',
+      '        if not openpyxl: print("openpyxl missing"); return None',
+      '        wb = openpyxl.load_workbook(fp)',
+      '        sh = wb.active',
+      '        hd = [str(c.value).strip() for c in sh[1]]',
+      '        return [{hd[j]:str(r[j]).strip() if r[j] is not None else "" for j in range(len(hd))} for r in sh.iter_rows(min_row=2,values_only=True)]',
+      '    else:',
+      '        print("Unsupported file type"); return None',
+      '',
+      'def body(name, key):',
+      '    return ("<html><body style=\\"font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6;\\">"',
+      '        "<p>Dear " + name + ",</p>"',
+      '        "<p>Please find below your personal access code:</p>"',
+      '        "<table style=\\"border-collapse:collapse;margin:16px 0;\\"><tr>"',
+      '        "<td style=\\"padding:10px 24px;background:#f0f4ff;border:1px solid #c0cce8;font-size:20px;font-weight:bold;letter-spacing:3px;color:#1a3a7a;\\">"',
+      '        + key + "</td></tr></table>" + HTML_MSG + "</body></html>")',
+      '',
+      'def courtesy_body(n):',
+      '    return ("<html><body style=\\"font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6;\\">"',
+      '        "<p>Courtesy confirmation: <strong>" + str(n) + " emails</strong> sent successfully.</p>"',
+      '        "<p><strong>Subject:</strong> " + SUBJECT + "</p>"',
+      '        "<p>Regards,<br><strong>" + SENDER_NAME + "</strong></p></body></html>")',
+      '',
+      'def main():',
+      "    print('=' * 55)",
+      "    print('  UJ Academic Code Delivery System')",
+      "    print('=' * 55)",
+      '    rows = read_file(FILE_PATH)',
+      '    if not rows: return',
+      '    valid = [r for r in rows if r.get(EMAIL_COL) and r.get(KEY_COL) and r.get(NAME_COL)]',
+      "    print('\\n  Recipients found: ' + str(len(valid)))",
+      '    for r in valid[:3]:',
+      "        print('    -> ' + r[NAME_COL] + ' <' + r[EMAIL_COL] + '>')",
+      "    if len(valid) > 3: print('    ... and ' + str(len(valid)-3) + ' more.')",
+      "    print()",
+      "    if input('  Send all? (yes/no): ').strip().lower() != 'yes':",
+      "        print('  Cancelled.'); return",
+      '    sent = 0',
+      '    errors = []',
+      '    try:',
+      "        print('\\n  Connecting to Gmail...')",
+      "        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as sv:",
+      '            sv.login(SENDER_EMAIL, APP_PASSWORD)',
+      "            print('  Logged in! Sending...\\n')",
+      '            for i,r in enumerate(valid,1):',
+      '                try:',
+      "                    m = MIMEMultipart('alternative')",
+      '                    m["Subject"] = SUBJECT',
+      '                    m["From"] = SENDER_NAME + " <" + SENDER_EMAIL + ">"',
+      '                    m["To"] = r[EMAIL_COL]',
+      '                    m.attach(MIMEText(body(r[NAME_COL], r[KEY_COL]), "html"))',
+      '                    sv.sendmail(SENDER_EMAIL, r[EMAIL_COL], m.as_string())',
+      "                    print('  [' + str(i).zfill(2) + '/' + str(len(valid)) + '] SENT -> ' + r[EMAIL_COL])",
+      '                    sent += 1',
+      '                    time.sleep(DELAY)',
+      '                except Exception as e:',
+      "                    errors.append('  FAIL -> ' + r.get(EMAIL_COL,'?') + ' | ' + str(e))",
+      '                    print(errors[-1])',
+      '            if COURTESY:',
+      "                print('\\n  Sending courtesy emails...')",
+      '                for rc in COURTESY:',
+      '                    try:',
+      "                        m = MIMEMultipart('alternative')",
+      "                        m['Subject'] = 'Confirmation - ' + SUBJECT",
+      "                        m['From'] = SENDER_NAME + ' <' + SENDER_EMAIL + '>'",
+      "                        m['To'] = rc",
+      '                        m.attach(MIMEText(courtesy_body(sent), "html"))',
+      '                        sv.sendmail(SENDER_EMAIL, rc, m.as_string())',
+      "                        print('  Courtesy sent -> ' + rc)",
+      '                    except Exception as e:',
+      "                        print('  Courtesy FAILED -> ' + rc + ' | ' + str(e))",
+      '    except smtplib.SMTPAuthenticationError:',
+      "        print('\\n  ERROR: Auth failed. Check email and App Password.')",
+      '        return',
+      '    except Exception as e:',
+      "        print('\\n  ERROR: ' + str(e))",
+      '        return',
+      "    print('\\n' + '=' * 55)",
+      "    print('  Done! ' + str(sent) + ' sent, ' + str(len(errors)) + ' failed.')",
+      "    print('=' * 55 + '\\n')",
+      '',
+      "if __name__ == '__main__':",
+      '    try:',
+      '        main()',
+      '    except Exception as e:',
+      "        print('\\n  UNEXPECTED ERROR: ' + str(e))",
+      "        print('  Screenshot this for support.')",
+      "    input('\\n  Press Enter to close...')"
+    ];
+
+    return L.join("\n");
+  }
+
+  // Wire up buttons
+  document.getElementById("btn1").addEventListener("click", function() {
+    if (validate(1)) showStep(2);
+  });
+  document.getElementById("back2").addEventListener("click", function() { showStep(1); });
+  document.getElementById("btn2").addEventListener("click", function() {
+    if (validate(2)) showStep(3);
+  });
+  document.getElementById("back3").addEventListener("click", function() { showStep(2); });
+  document.getElementById("btn3").addEventListener("click", function() {
+    if (validate(3)) showStep(4);
+  });
+  document.getElementById("back4").addEventListener("click", function() { showStep(3); });
+  document.getElementById("btn4").addEventListener("click", function() {
+    if (validate(4)) showStep(5);
+  });
+  document.getElementById("back5").addEventListener("click", function() { showStep(4); });
+  document.getElementById("btn5").addEventListener("click", function() {
+    buildSummary();
+    showStep(6);
+  });
+  document.getElementById("back6").addEventListener("click", function() { showStep(5); });
+
+  document.getElementById("togRow").addEventListener("click", function() {
+    cOn = !cOn;
+    document.getElementById("tog").className = cOn ? "tog on" : "tog";
+    document.getElementById("cfields").className = cOn ? "cfields on" : "cfields";
+  });
+
+  document.getElementById("btnDl").addEventListener("click", function() {
+    var script = buildScript();
+    var blob = new Blob([script], {type: "text/plain"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "send_emails.py";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  });
+
+})();
+</script>
+</body>
+</html>
